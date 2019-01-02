@@ -1085,7 +1085,9 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro enum(identifier, do: block) do
     quote do
-      enum unquote(identifier), do: :ok
+      enum unquote(identifier), [] do
+        unquote(block)
+      end
     end
   end
 
@@ -1113,6 +1115,14 @@ defmodule Absinthe.Schema.Notation do
     }
 
     Module.put_attribute(module, :__absinthe_enums__, enum)
+  end
+
+  defmacro values(values) do
+    quote do
+      for val <- unquote(values) do
+        value val
+      end
+    end
   end
 
   @placement {:value, [under: [:enum]]}
@@ -1333,14 +1343,6 @@ defmodule Absinthe.Schema.Notation do
   defmacro import_sdl(sdl, opts \\ []) do
     __CALLER__
     |> do_import_sdl(sdl, opts)
-  end
-
-  defmacro values(values) do
-    quote do
-      for val <- unquote(values) do
-        value val
-      end
-    end
   end
 
   ### Recorders ###
