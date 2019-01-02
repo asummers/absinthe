@@ -23,12 +23,12 @@ defmodule Absinthe.Blueprint.Schema.ObjectTypeDefinition do
   ]
 
   @type t :: %__MODULE__{
-          name: String.t(),
-          identifier: atom,
           description: nil | String.t(),
-          fields: [Blueprint.Schema.FieldDefinition.t()],
-          interfaces: [String.t()],
           directives: [Blueprint.Directive.t()],
+          fields: [Blueprint.Schema.FieldDefinition.t()],
+          identifier: atom,
+          interfaces: [String.t()],
+          name: String.t(),
           source_location: nil | Blueprint.SourceLocation.t(),
           # Added by phases
           flags: Blueprint.flags_t(),
