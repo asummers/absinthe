@@ -259,7 +259,7 @@ defmodule Absinthe.Schema do
   need, in the event that different groups of mutations return different results
   that require different topic functions.
   """
-  defmacro subscription(raw_attrs \\ [], do: block) do
+  defmacro subscription(attrs \\ [], do: block) do
     quote do
       object :subscription, Keyword.put_new(unquote(attrs), :name, "RootSubscriptionType") do
         unquote(block)
