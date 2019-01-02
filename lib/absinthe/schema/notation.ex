@@ -198,8 +198,10 @@ defmodule Absinthe.Schema.Notation do
       @__absinthe_interfaces__ []
       unquote(block)
 
-      __object__(
+      Absinthe.Schema.Notation.__object__(
         __MODULE__,
+        __ENV__.file,
+        __ENV__.line,
         unquote(identifier),
         unquote(attrs),
         @__absinthe_fields__,
@@ -212,8 +214,8 @@ defmodule Absinthe.Schema.Notation do
     name = attrs[:name] || default_name(Schema.ObjectTypeDefinition, identifier)
 
     object = %Schema.ObjectTypeDefinition{
-      description: description,
-      directives: directives,
+      description: attrs[:description],
+      # directives: directives,
       fields: fields,
       identifier: identifier,
       interfaces: interfaces,
@@ -251,11 +253,17 @@ defmodule Absinthe.Schema.Notation do
   ```
   """
   defmacro interface(identifier, attrs \\ [], do: block) do
-    __CALLER__
-    |> record!(Schema.InterfaceTypeDefinition, identifier, attrs, block)
-
     quote do
+      # |> record!(Schema.InterfaceTypeDefinition, identifier, attrs)
       unquote(block)
+
+      Absinthe.Schema.Notation.__interface__(
+        __MODULE__,
+        __ENV__.file,
+        __ENV__.line,
+        unquote(identifier),
+        unquote(attrs)
+      )
     end
   end
 
@@ -279,7 +287,9 @@ defmodule Absinthe.Schema.Notation do
   @placement {:interface_attribute, [under: :object]}
   defmacro interface(identifier) do
     quote do
-      Absinthe.Schema.Notation.__interface__(__MODULE__, unquote(identifier))
+      interface unquote(identifier) do
+        :ok
+      end
     end
   end
 
@@ -309,12 +319,10 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro interfaces(interfaces) when is_list(interfaces) do
     quote do
-      __interfaces__(__MODULE__, unquote(interfaces))
+      for iface <- unquote(interfaces) do
+        interface iface
+      end
     end
-  end
-
-  def __interfaces__(module, interfaces) do
-    Enum.each(interfaces, &__interface__(module, &1))
   end
 
   @placement {:resolve, [under: [:field]]}
@@ -357,7 +365,7 @@ defmodule Absinthe.Schema.Notation do
   # Record a deprecation in the current scope
   def __deprecate__(module, msg) do
     deprecation = build_deprecation(msg)
-    put_attr(module, {:deprecation, deprecation})
+    Module.put_attribute(module, :deprecation, deprecation)
   end
 
   # INTERFACES
@@ -454,6 +462,7 @@ defmodule Absinthe.Schema.Notation do
   """
 
   defmacro field(identifier, attrs) when is_list(attrs) do
+
     {attrs, block} = handle_field_attrs(attrs, __CALLER__)
 
     __CALLER__
@@ -472,7 +481,7 @@ defmodule Absinthe.Schema.Notation do
 
   See `field/4`
   """
-  defmacro field(identifier, attrs, do: block) when is_list(attrs) do
+  defmacro field(identifier, attrs \\ [], do: block) when is_list(attrs) do
     {attrs, more_block} = handle_field_attrs(attrs, __CALLER__)
     block = more_block ++ List.wrap(block)
 
@@ -602,16 +611,15 @@ defmodule Absinthe.Schema.Notation do
   end
 
   @placement {:complexity, [under: [:field]]}
-  defmacro complexity(func_ast) do
+  defmacro complexity(complexity) do
     quote do
-      __complexity__(__MODULE__, unquote(func_ast))
+      __complexity__(__MODULE__, unquote(complexity))
     end
   end
 
   @doc false
-  # Record a complexity analyzer in the current scope
-  def __complexity__(module, func_ast) do
-    put_attr(module, {:complexity, func_ast})
+  def __complexity__(module, complexity) do
+    Module.put_attribute(module, :__absinthe_complexity__, complexity)
   end
 
   @placement {:middleware, [under: [:field]]}
@@ -620,6 +628,7 @@ defmodule Absinthe.Schema.Notation do
     |> record_middleware!(new_middleware, opts)
 
     quote do
+
     end
   end
 
@@ -722,6 +731,7 @@ defmodule Absinthe.Schema.Notation do
   defmacro scalar(identifier, attrs, do: block) do
     quote do
       unquote(block)
+
       record!(
         __MODULE__,
         Schema.ScalarTypeDefinition,
@@ -901,13 +911,16 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro directive(identifier, attrs \\ [], do: block) do
     quote do
-      @__absinthe_args__ []
-      @__absinthe_locations__ []
+      Module.delete_attribute(__MODULE__, :__absinthe_args__)
+      Module.delete_attribute(__MODULE__, :__absinthe_locations__)
       @__absinthe_expand__ nil
+
       unquote(block)
 
       Absinthe.Schema.Notation.__directive__(
-        module,
+        __MODULE__,
+        __ENV__.file,
+        __ENV__.line,
         unquote(identifier),
         unquote(attrs),
         @__absinthe_args__,
@@ -919,13 +932,16 @@ defmodule Absinthe.Schema.Notation do
 
   @doc false
   # Record a directive
-  def __directive__(module, identifier, attrs, args, locations, expand) do
+  def __directive__(module, file, line, identifier, attrs, args, locations, expand) do
+    reference = build_reference(module, file, line)
+
     attrs =
       attrs
       |> Keyword.put(:args, args)
       |> Keyword.put(:expand, expand)
       |> Keyword.put(:identifier, identifier)
       |> Keyword.put(:locations, locations)
+      |> Keyword.put(:__reference__, reference)
       |> Keyword.put_new(:name, to_string(identifier))
 
     directive = struct!(Schema.DirectiveDefinition, attrs)
@@ -995,12 +1011,13 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro input_object(identifier, attrs \\ [], do: block) do
     quote do
+      unquote(block)
+
       record!(
         __MODULE__,
         Schema.InputObjectTypeDefinition,
         unquote(identifier),
-        unquote(attrs),
-        unquote(block)
+        unquote(attrs)
       )
     end
   end
@@ -1032,12 +1049,13 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro union(identifier, attrs \\ [], do: block) do
     quote do
+      Module.delete_attribute(__MODULE__, :__absinthe_union_types__)
+      unquote(block)
       record!(
         __MODULE__,
         Schema.UnionTypeDefinition,
         unquote(identifier),
         unquote(attrs),
-        unquote(block)
       )
     end
   end
@@ -1059,7 +1077,7 @@ defmodule Absinthe.Schema.Notation do
   end
 
   def __types__(module, types) do
-    put_attr(module, {:types, types})
+    Module.put_attribute(module, :__absinthe_union_types__, types)
   end
 
   # ENUMS
@@ -1115,7 +1133,7 @@ defmodule Absinthe.Schema.Notation do
   ```
 
   """
-  defmacro enum(identifier, attrs, do: block) do
+  defmacro enum(identifier, attrs \\ [], do: block) do
     quote do
       Module.delete_attribute(__MODULE__, :__absinthe_enum_values__)
       Module.delete_attribute(__MODULE__, :__absinthe_enum_directives__)
@@ -1124,7 +1142,7 @@ defmodule Absinthe.Schema.Notation do
 
       Absinthe.Schema.Notation.__enum__(
         __MODULE__,
-        __ENV__,file,
+        __ENV__.file,
         __ENV__.line,
         unquote(identifier),
         unquote(attrs),
@@ -1139,19 +1157,11 @@ defmodule Absinthe.Schema.Notation do
 
   See `enum/3`
   """
-  defmacro enum(identifier, do: block) do
-    quote do
-      enum unquote(identifier), [] do
-        unquote(block)
-      end
-    end
-  end
-
   defmacro enum(identifier, attrs) do
     quote do
       enum unquote(identifier), Keyword.delete(unquote(attrs), :values) do
         for attr <- Keyword.get(unquote(attrs), :values) do
-          value(attr)
+          value attr
         end
       end
     end
@@ -1177,7 +1187,7 @@ defmodule Absinthe.Schema.Notation do
   defmacro values(values) do
     quote do
       for val <- unquote(values) do
-        value(val)
+        value val
       end
     end
   end
@@ -1196,7 +1206,7 @@ defmodule Absinthe.Schema.Notation do
     quote do
       Absinthe.Schema.Notation.__value__(
         __MODULE__,
-        __ENV__,file,
+        __ENV__.file,
         __ENV__.line,
         unquote(identifier),
         unquote(raw_attrs)
@@ -1205,9 +1215,9 @@ defmodule Absinthe.Schema.Notation do
   end
 
   @doc false
-  # Record an enum value in the current scope
   def __value__(module, file, line, identifier, raw_attrs) do
     reference = build_reference(module, file, line)
+
     name =
       identifier
       |> to_string()
@@ -1215,12 +1225,12 @@ defmodule Absinthe.Schema.Notation do
 
     attrs =
       raw_attrs
+      |> Keyword.put(:__reference__, reference)
       |> Keyword.put(:identifier, identifier)
+      |> Keyword.put(:module, module)
       |> Keyword.put(:value, Keyword.get(raw_attrs, :as, identifier))
       |> Keyword.put_new(:name, name)
       |> Keyword.delete(:as)
-      |> Keyword.put(:module, module)
-      |> Keyword.put(:__reference__, reference)
       |> handle_deprecate()
 
     value = struct!(Schema.EnumValueDefinition, attrs)
@@ -1249,12 +1259,11 @@ defmodule Absinthe.Schema.Notation do
     end
   end
 
-  def __description__(module, text_block) do
-    text = reformat_description(text_block)
-    put_attr(module, {:desc, text})
+  @doc false
+  def __description__(module, text) do
+    description = String.trim(text)
+    Module.put_attribute(module, :desc, description)
   end
-
-  defp reformat_description(text), do: String.trim(text)
 
   # TYPE UTILITIES
   @doc """
@@ -1335,6 +1344,7 @@ defmodule Absinthe.Schema.Notation do
     end
   end
 
+  @doc false
   def __import_fields__(module, source_criteria, opts) do
     put_attr(module, {:import_fields, {source_criteria, opts}})
   end
@@ -1364,6 +1374,7 @@ defmodule Absinthe.Schema.Notation do
     end
   end
 
+  @doc false
   defp __import_types__(module, type_module, opts) do
     Module.put_attribute(module, :__absinthe_type_imports__, {type_module, opts})
   end
@@ -1431,10 +1442,6 @@ defmodule Absinthe.Schema.Notation do
     Schema.DirectiveDefinition
   ]
 
-  def record!(module, type, identifier, attrs, block) when type in @scoped_types do
-    scoped_def(module, type, identifier, attrs, block)
-  end
-
   # Record private values
   def __private__(module, owner, keyword_list) when is_list(keyword_list) do
     put_attr(module, {:__private__, [{owner, keyword_list}]})
@@ -1464,26 +1471,12 @@ defmodule Absinthe.Schema.Notation do
 
   # ------------------------------
 
-  def put_reference(attrs, env) do
-    Keyword.put(attrs, :__reference__, build_reference(env))
-  end
-
   def build_reference(module, file, line) do
     %{
       module: module,
       location: %{
         file: file,
         line: line
-      }
-    }
-  end
-
-  def build_reference(env) do
-    %{
-      module: env.module,
-      location: %{
-        file: env.file,
-        line: env.line
       }
     }
   end
@@ -1500,20 +1493,14 @@ defmodule Absinthe.Schema.Notation do
     ref = put_attr(module, definition)
 
     quote do
-      @absinthe_desc {ref, @desc}
+      @absinthe_desc @desc
       @desc nil
       unquote(body)
     end
   end
 
-  def put_attr(module, thing) do
-    ref = :erlang.unique_integer()
-    Module.put_attribute(module, :absinthe_blueprint, {ref, thing})
-  end
-
   defp default_name(Schema.FieldDefinition, identifier) do
-    identifier
-    |> Atom.to_string()
+    Atom.to_string(identifier)
   end
 
   defp default_name(_, identifier) do
@@ -1581,8 +1568,6 @@ defmodule Absinthe.Schema.Notation do
     attrs =
       env.module
       |> Module.get_attribute(:absinthe_blueprint)
-      |> List.insert_at(0, :close)
-      |> reverse_with_descs(module_attribute_descs)
 
     imports =
       (Module.get_attribute(env.module, :__absinthe_type_imports__) || [])
@@ -1702,21 +1687,5 @@ defmodule Absinthe.Schema.Notation do
 
   def __ensure_middleware__(middleware, _field, _object) do
     middleware
-  end
-
-  defp reverse_with_descs(attrs, descs, acc \\ [])
-
-  defp reverse_with_descs([], _descs, acc), do: acc
-
-  defp reverse_with_descs([{ref, attr} | rest], descs, acc) do
-    if desc = Map.get(descs, ref) do
-      reverse_with_descs(rest, descs, [attr, {:desc, desc} | acc])
-    else
-      reverse_with_descs(rest, descs, [attr | acc])
-    end
-  end
-
-  defp reverse_with_descs([attr | rest], descs, acc) do
-    reverse_with_descs(rest, descs, [attr | acc])
   end
 end
