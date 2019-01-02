@@ -36,15 +36,14 @@ defmodule Absinthe.Type.Union do
   The `:resolve_type` function will be passed two arguments; the object whose type needs to be identified, and the `Absinthe.Execution` struct providing the full execution context.
 
   The `__private__` and `:__reference__` keys are for internal use.
-
   """
   @type t :: %__MODULE__{
           name: binary,
           description: binary,
           types: [Type.identifier_t()],
           identifier: atom,
-          __private__: Keyword.t(),
           definition: Module.t(),
+          __private__: Keyword.t(),
           __reference__: Type.Reference.t()
         }
 
