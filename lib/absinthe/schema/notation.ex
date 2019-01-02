@@ -721,12 +721,12 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro scalar(identifier, attrs, do: block) do
     quote do
+      unquote(block)
       record!(
         __MODULE__,
         Schema.ScalarTypeDefinition,
         unquote(identifier),
-        unquote(attrs),
-        unquote(block)
+        unquote(attrs)
       )
     end
   end
@@ -953,7 +953,7 @@ defmodule Absinthe.Schema.Notation do
   def __locations__(module, locations) do
     locations
     |> List.wrap()
-    |> Enum.each(&Module.put_attribute(module, :__absinthe_locations__, &1))
+    |> Enum.each(&Module.put_attribute(module, :__absinthe_directive_locations__, &1))
   end
 
   @placement {:expand, [under: :directive]}
@@ -1117,14 +1117,15 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro enum(identifier, attrs, do: block) do
     quote do
-      @__absinthe_enum_values__ []
-      @__absinthe_enum_directives__ []
+      Module.delete_attribute(__MODULE__, :__absinthe_enum_values__)
+      Module.delete_attribute(__MODULE__, :__absinthe_enum_directives__)
+
       unquote(block)
 
       Absinthe.Schema.Notation.__enum__(
         __MODULE__,
-        unquote(__FILE__),
-        unquote(__LINE__),
+        __ENV__,file,
+        __ENV__.line,
         unquote(identifier),
         unquote(attrs),
         @__absinthe_enum_values__,
@@ -1195,8 +1196,8 @@ defmodule Absinthe.Schema.Notation do
     quote do
       Absinthe.Schema.Notation.__value__(
         __MODULE__,
-        unquote(__FILE__),
-        unquote(__LINE__),
+        __ENV__,file,
+        __ENV__.line,
         unquote(identifier),
         unquote(raw_attrs)
       )
@@ -1207,14 +1208,13 @@ defmodule Absinthe.Schema.Notation do
   # Record an enum value in the current scope
   def __value__(module, file, line, identifier, raw_attrs) do
     reference = build_reference(module, file, line)
-
     name =
       identifier
       |> to_string()
       |> String.upcase()
 
     attrs =
-      identifier
+      raw_attrs
       |> Keyword.put(:identifier, identifier)
       |> Keyword.put(:value, Keyword.get(raw_attrs, :as, identifier))
       |> Keyword.put_new(:name, name)
@@ -1263,7 +1263,9 @@ defmodule Absinthe.Schema.Notation do
   See `field/3` for examples
   """
   defmacro non_null(type) do
-    %Absinthe.Blueprint.TypeReference.NonNull{of_type: expand_ast(type, __CALLER__)}
+    quote do
+      %Absinthe.Blueprint.TypeReference.NonNull{of_type: unquote(type)}
+    end
   end
 
   @doc """
@@ -1272,7 +1274,9 @@ defmodule Absinthe.Schema.Notation do
   See `field/3` for examples
   """
   defmacro list_of(type) do
-    %Absinthe.Blueprint.TypeReference.List{of_type: expand_ast(type, __CALLER__)}
+    quote do
+      %Absinthe.Blueprint.TypeReference.List{of_type: unquote(type)}
+    end
   end
 
   @placement {:import_fields, [under: [:input_object, :interface, :object]]}
@@ -1466,10 +1470,10 @@ defmodule Absinthe.Schema.Notation do
 
   def build_reference(module, file, line) do
     %{
-      module: env.module,
+      module: module,
       location: %{
-        file: env.file,
-        line: env.line
+        file: file,
+        line: line
       }
     }
   end
@@ -1495,15 +1499,10 @@ defmodule Absinthe.Schema.Notation do
 
     ref = put_attr(module, definition)
 
-    [
-      get_desc(ref),
-      body
-    ]
-  end
-
-  defp get_desc(ref) do
     quote do
-      unquote(__MODULE__).put_desc(__MODULE__, unquote(ref))
+      @absinthe_desc {ref, @desc}
+      @desc nil
+      unquote(body)
     end
   end
 
@@ -1571,11 +1570,6 @@ defmodule Absinthe.Schema.Notation do
           raise Absinthe.Schema.Notation.Error, "`import_sdl` could not parse SDL:\n#{error}"
       end
     end
-  end
-
-  def put_desc(module, ref) do
-    Module.put_attribute(module, :absinthe_desc, {ref, Module.get_attribute(module, :desc)})
-    Module.put_attribute(module, :desc, nil)
   end
 
   defmacro __before_compile__(env) do
