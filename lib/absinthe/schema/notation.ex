@@ -114,7 +114,11 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro trigger(mutations, attrs) do
     quote do
-      Absinthe.Schema.Notation.__trigger__(__MODULE__, List.wrap(unquote(mutations)), unquote(attrs))
+      Absinthe.Schema.Notation.__trigger__(
+        __MODULE__,
+        List.wrap(unquote(mutations)),
+        unquote(attrs)
+      )
     end
   end
 
@@ -173,21 +177,34 @@ defmodule Absinthe.Schema.Notation do
         {meta, attrs} ->
           meta_ast =
             quote do
-              meta unquote(meta)
+              meta(unquote(meta))
             end
 
           block = [meta_ast, block]
           {attrs, block}
       end
 
-    Absinthe.Schema.Notation.record!(__CALLER__, Schema.ObjectTypeDefinition, identifier, attrs, block)
+    Absinthe.Schema.Notation.record!(
+      __CALLER__,
+      Schema.ObjectTypeDefinition,
+      identifier,
+      attrs,
+      block
+    )
 
     quote do
       @__current_absinthe_object__ unquote(identifier)
       @__absinthe_fields__ []
       @__absinthe_interfaces__ []
       unquote(block)
-      __object__(__MODULE__, unquote(identifier), unquote(attrs), @__absinthe_fields__, @__absinthe_interfaces__)
+
+      __object__(
+        __MODULE__,
+        unquote(identifier),
+        unquote(attrs),
+        @__absinthe_fields__,
+        @__absinthe_interfaces__
+      )
     end
   end
 
@@ -236,9 +253,9 @@ defmodule Absinthe.Schema.Notation do
   defmacro interface(identifier, attrs \\ [], do: block) do
     __CALLER__
     |> record!(Schema.InterfaceTypeDefinition, identifier, attrs, block)
+
     quote do
       unquote(block)
-
     end
   end
 
@@ -385,7 +402,7 @@ defmodule Absinthe.Schema.Notation do
     block =
       for {identifier, arg_attrs} <- Keyword.get(attrs, :args, []) do
         quote do
-          arg unquote(identifier), unquote(arg_attrs)
+          arg(unquote(identifier), unquote(arg_attrs))
         end
       end
 
@@ -395,7 +412,7 @@ defmodule Absinthe.Schema.Notation do
       if func_ast do
         [
           quote do
-            resolve unquote(func_ast)
+            resolve(unquote(func_ast))
           end
         ]
       else
@@ -475,8 +492,6 @@ defmodule Absinthe.Schema.Notation do
 
     __CALLER__
     |> record!(Schema.FieldDefinition, identifier, attrs, block)
-
-
   end
 
   @doc """
@@ -582,7 +597,7 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro resolve(func_ast) do
     quote do
-      middleware Absinthe.Resolution, unquote(func_ast)
+      middleware(Absinthe.Resolution, unquote(func_ast))
     end
   end
 
@@ -605,7 +620,6 @@ defmodule Absinthe.Schema.Notation do
     |> record_middleware!(new_middleware, opts)
 
     quote do
-
     end
   end
 
@@ -648,7 +662,11 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro arg(identifier, type, attrs) do
     quote do
-      Absinthe.Schema.Notation.__arg__(__MODULE__, unquote(identifier), Keyword.put(unquote(attrs), :type, unquote(type)))
+      Absinthe.Schema.Notation.__arg__(
+        __MODULE__,
+        unquote(identifier),
+        Keyword.put(unquote(attrs), :type, unquote(type))
+      )
     end
   end
 
@@ -665,7 +683,7 @@ defmodule Absinthe.Schema.Notation do
 
   defmacro arg(identifier, type) do
     quote do
-      Absinthe.Schema.Notation.__arg__(__MODULE__, unquote(identifier), [type: unquote(type)])
+      Absinthe.Schema.Notation.__arg__(__MODULE__, unquote(identifier), type: unquote(type))
     end
   end
 
@@ -703,7 +721,13 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro scalar(identifier, attrs, do: block) do
     quote do
-      record!(__MODULE__, Schema.ScalarTypeDefinition, unquote(identifier), unquote(attrs), unquote(block))
+      record!(
+        __MODULE__,
+        Schema.ScalarTypeDefinition,
+        unquote(identifier),
+        unquote(attrs),
+        unquote(block)
+      )
     end
   end
 
@@ -752,7 +776,9 @@ defmodule Absinthe.Schema.Notation do
   @doc false
   defmacro private(owner, key, value) do
     quote do
-      Absinthe.Schema.Notation.__private__(__MODULE__, unquote(owner), [{unquote(key), unquote(value)}])
+      Absinthe.Schema.Notation.__private__(__MODULE__, unquote(owner), [
+        {unquote(key), unquote(value)}
+      ])
     end
   end
 
@@ -879,7 +905,15 @@ defmodule Absinthe.Schema.Notation do
       @__absinthe_locations__ []
       @__absinthe_expand__ nil
       unquote(block)
-      Absinthe.Schema.Notation.__directive__(module, unquote(identifier), unquote(attrs), @__absinthe_args__, @__absinthe_locations__, @__absinthe_expand__)
+
+      Absinthe.Schema.Notation.__directive__(
+        module,
+        unquote(identifier),
+        unquote(attrs),
+        @__absinthe_args__,
+        @__absinthe_locations__,
+        @__absinthe_expand__
+      )
     end
   end
 
@@ -961,7 +995,13 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro input_object(identifier, attrs \\ [], do: block) do
     quote do
-      record!(__MODULE__, Schema.InputObjectTypeDefinition, unquote(identifier), unquote(attrs), unquote(block))
+      record!(
+        __MODULE__,
+        Schema.InputObjectTypeDefinition,
+        unquote(identifier),
+        unquote(attrs),
+        unquote(block)
+      )
     end
   end
 
@@ -992,7 +1032,13 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro union(identifier, attrs \\ [], do: block) do
     quote do
-      record!(__MODULE__, Schema.UnionTypeDefinition, unquote(identifier), unquote(attrs), unquote(block))
+      record!(
+        __MODULE__,
+        Schema.UnionTypeDefinition,
+        unquote(identifier),
+        unquote(attrs),
+        unquote(block)
+      )
     end
   end
 
@@ -1074,7 +1120,16 @@ defmodule Absinthe.Schema.Notation do
       @__absinthe_enum_values__ []
       @__absinthe_enum_directives__ []
       unquote(block)
-      Absinthe.Schema.Notation.__enum__(__MODULE__, unquote(__FILE__), unquote(__LINE__), unquote(identifier), unquote(attrs), @__absinthe_enum_values__, @__absinthe_enum_directives__)
+
+      Absinthe.Schema.Notation.__enum__(
+        __MODULE__,
+        unquote(__FILE__),
+        unquote(__LINE__),
+        unquote(identifier),
+        unquote(attrs),
+        @__absinthe_enum_values__,
+        @__absinthe_enum_directives__
+      )
     end
   end
 
@@ -1095,7 +1150,7 @@ defmodule Absinthe.Schema.Notation do
     quote do
       enum unquote(identifier), Keyword.delete(unquote(attrs), :values) do
         for attr <- Keyword.get(unquote(attrs), :values) do
-          value attr
+          value(attr)
         end
       end
     end
@@ -1103,6 +1158,7 @@ defmodule Absinthe.Schema.Notation do
 
   def __enum__(module, file, line, identifier, attrs, values, directives) do
     reference = build_reference(module, file, line)
+
     enum = %Schema.EnumValueDefinition{
       __reference__: reference,
       description: attrs[:description],
@@ -1120,7 +1176,7 @@ defmodule Absinthe.Schema.Notation do
   defmacro values(values) do
     quote do
       for val <- unquote(values) do
-        value val
+        value(val)
       end
     end
   end
@@ -1137,7 +1193,13 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro value(identifier, raw_attrs \\ []) do
     quote do
-      Absinthe.Schema.Notation.__value__(__MODULE__, unquote(__FILE__), unquote(__LINE__), unquote(identifier), unquote(raw_attrs))
+      Absinthe.Schema.Notation.__value__(
+        __MODULE__,
+        unquote(__FILE__),
+        unquote(__LINE__),
+        unquote(identifier),
+        unquote(raw_attrs)
+      )
     end
   end
 
@@ -1145,9 +1207,10 @@ defmodule Absinthe.Schema.Notation do
   # Record an enum value in the current scope
   def __value__(module, file, line, identifier, raw_attrs) do
     reference = build_reference(module, file, line)
+
     name =
       identifier
-      |> to_string(()
+      |> to_string()
       |> String.upcase()
 
     attrs =
@@ -1260,7 +1323,11 @@ defmodule Absinthe.Schema.Notation do
   """
   defmacro import_fields(source_criteria, opts \\ []) do
     quote do
-      Absinthe.Schema.Notation.__import_fields__(__MODULE__, unquote(source_criteria), unquote(opts))
+      Absinthe.Schema.Notation.__import_fields__(
+        __MODULE__,
+        unquote(source_criteria),
+        unquote(opts)
+      )
     end
   end
 
