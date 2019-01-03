@@ -25,6 +25,7 @@ defmodule Absinthe.Schema.Notation2 do
       Module.register_attribute(__MODULE__, :__absinthe_fields__, accumulate: true)
       Module.register_attribute(__MODULE__, :__absinthe_field_args__, accumulate: true)
       Module.register_attribute(__MODULE__, :__absinthe_import_fields__, accumulate: true)
+      Module.register_attribute(__MODULE__, :__absinthe_input_object_types__, accumulate: true)
       Module.register_attribute(__MODULE__, :__absinthe_interfaces__, accumulate: true)
       Module.register_attribute(__MODULE__, :__absinthe_locations__, accumulate: true)
       Module.register_attribute(__MODULE__, :__absinthe_objects__, accumulate: true)
@@ -59,10 +60,10 @@ defmodule Absinthe.Schema.Notation2 do
                   line: __ENV__.line
                 }
               },
-              type_definitions: @__absinthe_objects__ ++ @__absinthe_sdl_definitions__ ++ @__absinthe_enums__ ++ @__absinthe_scalar_types__
+              type_definitions: @__absinthe_objects__ ++ @__absinthe_sdl_definitions__ ++ @__absinthe_enums__ ++ @__absinthe_scalar_types__ ++ @__absinthe_input_object_types__
             },
           ]
-        } |> IO.inspect(limit: :infinity)
+        } # |> IO.inspect(limit: :infinity)
 
         x
       end
@@ -217,7 +218,7 @@ defmodule Absinthe.Schema.Notation2 do
         __ENV__.line,
         unquote(identifier),
         unquote(attrs),
-        @__absinthe_fields__ |> IO.inspect,
+        @__absinthe_fields__,
         @__absinthe_interfaces__
       )
     end
@@ -1154,7 +1155,7 @@ defmodule Absinthe.Schema.Notation2 do
       |> Keyword.put_new(:name, default_name(identifier, Schema.InputObjectTypeDefinition))
 
     input_object = struct!(Schema.InputObjectTypeDefinition, attrs)
-    Module.put_attribute(module, :__absinthe_input_ubject_types__, input_object)
+    Module.put_attribute(module, :__absinthe_input_object_types__, input_object)
   end
 
   # UNIONS
