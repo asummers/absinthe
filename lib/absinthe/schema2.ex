@@ -1,4 +1,4 @@
-defmodule Absinthe.Schema do
+defmodule Absinthe.Schema2 do
   alias Absinthe.Type
   alias __MODULE__
 
@@ -99,7 +99,7 @@ defmodule Absinthe.Schema do
     )
 
     quote do
-      use Absinthe.Schema.Notation
+      use Absinthe.Schema.Notation2
       import unquote(__MODULE__), only: :macros
 
       @after_compile unquote(__MODULE__)
@@ -138,25 +138,17 @@ defmodule Absinthe.Schema do
     end
   end
 
-  @object_type Absinthe.Blueprint.Schema.ObjectTypeDefinition
-
-  @default_query_name "RootQueryType"
   @doc """
   Defines a root Query object
   """
-  defmacro query(raw_attrs \\ [name: @default_query_name], do: block) do
-    record_query(__CALLER__, raw_attrs, block)
+  defmacro query(attrs \\ [], do: block) do
+    quote do
+      object :query, Keyword.put_new(unquote(attrs), :name, "RootQueryType") do
+        unquote(block)
+      end
+    end
   end
 
-  defp record_query(env, raw_attrs, block) do
-    attrs =
-      raw_attrs
-      |> Keyword.put_new(:name, @default_query_name)
-
-    Absinthe.Schema.Notation.record!(env, @object_type, :query, attrs, block)
-  end
-
-  @default_mutation_name "RootMutationType"
   @doc """
   Defines a root Mutation object
 
@@ -171,19 +163,14 @@ defmodule Absinthe.Schema do
   end
   ```
   """
-  defmacro mutation(raw_attrs \\ [name: @default_mutation_name], do: block) do
-    record_mutation(__CALLER__, raw_attrs, block)
+  defmacro mutation(attrs \\ [], do: block) do
+    quote do
+      object :mutation, Keyword.put_new(unquote(attrs), :name, "RootMutationType") do
+        unquote(block)
+      end
+    end
   end
 
-  defp record_mutation(env, raw_attrs, block) do
-    attrs =
-      raw_attrs
-      |> Keyword.put_new(:name, @default_mutation_name)
-
-    Absinthe.Schema.Notation.record!(env, @object_type, :mutation, attrs, block)
-  end
-
-  @default_subscription_name "RootSubscriptionType"
   @doc """
   Defines a root Subscription object
 
@@ -272,16 +259,12 @@ defmodule Absinthe.Schema do
   need, in the event that different groups of mutations return different results
   that require different topic functions.
   """
-  defmacro subscription(raw_attrs \\ [name: @default_subscription_name], do: block) do
-    record_subscription(__CALLER__, raw_attrs, block)
-  end
-
-  defp record_subscription(env, raw_attrs, block) do
-    attrs =
-      raw_attrs
-      |> Keyword.put_new(:name, @default_subscription_name)
-
-    Absinthe.Schema.Notation.record!(env, @object_type, :subscription, attrs, block)
+  defmacro subscription(attrs \\ [], do: block) do
+    quote do
+      object :subscription, Keyword.put_new(unquote(attrs), :name, "RootSubscriptionType") do
+        unquote(block)
+      end
+    end
   end
 
   def __after_compile__(env, _) do
