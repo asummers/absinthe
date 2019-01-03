@@ -4,14 +4,14 @@ defmodule Absinthe.Blueprint.Schema.SchemaDefinition do
   alias Absinthe.Blueprint
 
   defstruct description: nil,
-            module: nil,
-            type_definitions: [],
-            directive_definitions: [],
-            type_artifacts: [],
             directive_artifacts: [],
-            type_extensions: [],
+            directive_definitions: [],
             directives: [],
+            module: nil,
             source_location: nil,
+            type_artifacts: [],
+            type_definitions: [],
+            type_extensions: [],
             # Added by phases
             flags: %{},
             imports: [],

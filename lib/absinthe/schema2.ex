@@ -100,9 +100,9 @@ defmodule Absinthe.Schema2 do
 
     quote do
       use Absinthe.Schema.Notation2
-      import unquote(__MODULE__), only: :macros
+      import Absinthe.Schema2, only: :macros
 
-      @after_compile unquote(__MODULE__)
+      @after_compile Absinthe.Schema2
 
       defdelegate __absinthe_type__(name), to: __MODULE__.Compiled
       defdelegate __absinthe_directive__(name), to: __MODULE__.Compiled
@@ -387,7 +387,7 @@ defmodule Absinthe.Schema2 do
     |> Enum.filter(&(!is_nil(&1)))
     |> Enum.flat_map(&Type.referenced_types(&1, schema))
     |> MapSet.new()
-    |> Enum.map(&Schema.lookup_type(schema, &1))
+    |> Enum.map(&Schema2.lookup_type(schema, &1))
   end
 
   @doc """
@@ -430,7 +430,7 @@ defmodule Absinthe.Schema2 do
   @spec introspection_types(t) :: [Type.t()]
   def introspection_types(schema) do
     schema
-    |> Schema.types()
+    |> Schema2.types()
     |> Enum.filter(&Type.introspection?/1)
   end
 end
